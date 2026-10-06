@@ -2,7 +2,7 @@
 .NET 8 API for a dashboard with individual accounts and private logs.
 
 ## Current state
-The API includes PostgreSQL persistence and an initial Identity account-schema migration. GET /api/health remains a process-health endpoint. Sign-in and log endpoints are not implemented yet; schema changes are applied explicitly.
+The API supports registration, cookie sessions, CSRF protection, and private log creation/listing with filtering and pagination. PostgreSQL migrations are applied explicitly. GET /api/health reports process health.
 
 ## Local development
 Install the .NET 8 SDK, then from this repository:
@@ -42,9 +42,18 @@ Run `dotnet test IGDash.Core.sln --configuration Release` with Docker available.
 Keep secrets in dotnet user-secrets or environment variables.
 
 ## Full Docker development
-This repo includes a Dockerfile.dev for source-mounted development. With both repos checked out as siblings under `ig/`, the local parent compose.yaml runs the API, frontend, and PostgreSQL together:
+Clone ig-dash-core and ig-dash-ui as siblings. Install Docker Compose 2.20.3 or newer (Compose include support). Configure .env as above, then from this repo:
 ```sh
-cd ..
-docker compose up --build -d --wait
+docker compose -f compose.workspace.yaml up --build -d --wait postgres
+docker compose -f compose.workspace.yaml --profile tools run --build --rm migrate
+docker compose -f compose.workspace.yaml up --build -d --wait postgres api ui
 ```
-Configure ig-dash-core/.env first. The shared setup includes compose.api.yaml, which configures the API using the database service name and the same local password. See ../README.md for hot reload, logs, and switching back to native apps. Parent orchestration files are local and are not tracked in either repo yet.
+Open http://localhost:5173. API: http://localhost:5193. Sources are mounted for hot reload; database and cookie protection keys persist in named volumes. The tracked workspace file is the shared entry point; no parent configuration is required.
+```sh
+docker compose -f compose.workspace.yaml --profile tools run --build --rm browser-tests
+docker compose -f compose.workspace.yaml logs -f api ui
+docker compose -f compose.workspace.yaml stop api ui
+```
+The last command frees ports for native apps while keeping PostgreSQL running. Browser checks create test accounts and logs; use a disposable stack for test runs when preserving development data matters. Do not remove persistent volumes to switch workflows.
+
+Sessions expire after eight hours. Sign-out revokes all sessions for that account. Production requires HTTPS, a same-origin API proxy, restricted database credentials, and deployment-specific configuration; these files provide development containers.

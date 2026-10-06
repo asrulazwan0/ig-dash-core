@@ -1,0 +1,40 @@
+name: ig-dash-core
+include:
+  - path:
+      - ./compose.yaml
+      - ./compose.api.yaml
+    env_file: ./.env
+services:
+  browser-tests:
+    profiles: [tools]
+    build:
+      context: ../ig-dash-ui
+      dockerfile: Dockerfile.e2e
+    environment:
+      BASE_URL: http://ui:5173
+    depends_on:
+      ui:
+        condition: service_healthy
+  ui:
+    build:
+      context: ../ig-dash-ui
+      dockerfile: Dockerfile.dev
+    environment:
+      API_PROXY_TARGET: http://api:5193
+      VITE_USE_POLLING: "true"
+    ports:
+      - "127.0.0.1:5173:5173"
+    volumes:
+      - ../ig-dash-ui:/workspace
+      - ui_node_modules:/workspace/node_modules
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:5173/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+volumes:
+  ui_node_modules:
