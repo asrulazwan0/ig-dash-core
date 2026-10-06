@@ -2,12 +2,14 @@
 .NET 8 API for a dashboard with individual accounts and private logs.
 
 ## Current state
-The Clean Architecture solution and GET /api/health are runnable. Authentication, database persistence, and log endpoints are not implemented yet.
+The API includes PostgreSQL persistence and an initial Identity account-schema migration. GET /api/health remains a process-health endpoint. Sign-in and log endpoints are not implemented yet; schema changes are applied explicitly.
 
 ## Local development
 Install the .NET 8 SDK, then from this repository:
 ```sh
 dotnet restore IGDash.Core.sln
+# Replace the password and port with your local PostgreSQL settings.
+dotnet user-secrets set 'ConnectionStrings:DefaultConnection' 'Host=localhost;Port=5432;Database=igdash;Username=igdash;Password=<local-password>' --project src/IGDash.Core.Api
 dotnet run --project src/IGDash.Core.Api --launch-profile http
 ```
 API: http://localhost:5193/api/health. Swagger: http://localhost:5193/swagger.
@@ -23,7 +25,7 @@ docker compose ps
 ```
 The database is `igdash`, the username is `igdash`, and the address is `localhost:5432`. Change POSTGRES_PORT in .env if that port is occupied. The port is bound to loopback only.
 
-The API does not connect to the database yet. When persistence is implemented, set `ConnectionStrings__DefaultConnection` in the API environment or `ConnectionStrings:DefaultConnection` using dotnet user-secrets:
+The API registers PostgreSQL persistence. Set `ConnectionStrings__DefaultConnection` in the API environment or `ConnectionStrings:DefaultConnection` using dotnet user-secrets:
 ```text
 Host=localhost;Port=5432;Database=igdash;Username=igdash;Password=<your-local-password>
 ```
@@ -35,7 +37,7 @@ Stop the database with `docker compose stop`; restart with `docker compose up -d
 ```sh
 dotnet build IGDash.Core.sln --configuration Release
 ```
-There are no tests yet. Add API integration tests alongside authentication and persistence.
+Run `dotnet test IGDash.Core.sln --configuration Release` with Docker available. Persistence tests create disposable PostgreSQL containers and do not target your development database. Migration procedures are maintained in the private Project.
 
 Keep secrets in dotnet user-secrets or environment variables.
 
@@ -45,4 +47,4 @@ This repo includes a Dockerfile.dev for source-mounted development. With both re
 cd ..
 docker compose up --build -d --wait
 ```
-Configure ig-dash-core/.env first. See ../README.md for hot reload, logs, and switching back to native apps. Parent orchestration files are local and are not tracked in either repo yet.
+Configure ig-dash-core/.env first. The shared setup includes compose.api.yaml, which configures the API using the database service name and the same local password. See ../README.md for hot reload, logs, and switching back to native apps. Parent orchestration files are local and are not tracked in either repo yet.

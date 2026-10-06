@@ -1,0 +1,48 @@
+services:
+  api:
+    build: &api-build
+      context: .
+      dockerfile: Dockerfile.dev
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://0.0.0.0:5193
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+      DOTNET_WATCH_SUPPRESS_BROWSER_REFRESH: "true"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      IGDASH_CONTAINER_ARTIFACTS: /tmp/igdash-artifacts
+      Postgres__Host: postgres
+      Postgres__Port: "5432"
+      Postgres__Database: igdash
+      Postgres__Username: igdash
+      Postgres__Password: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:5193:5193"
+    volumes:
+      - .:/workspace
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:5193/api/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+  migrate:
+    profiles: [tools]
+    build: *api-build
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      Postgres__Host: postgres
+      Postgres__Port: "5432"
+      Postgres__Database: igdash
+      Postgres__Username: igdash
+      Postgres__Password: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - sh
+      - -c
+      - dotnet tool restore && dotnet ef database update --project src/IGDash.Core.Infrastructure --startup-project src/IGDash.Core.Api
