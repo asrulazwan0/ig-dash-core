@@ -3,7 +3,7 @@ on: [push, pull_request]
 permissions:
   contents: read
 jobs:
-  build:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -12,3 +12,4 @@ jobs:
           dotnet-version: '8.0.x'
       - run: dotnet restore IGDash.Core.sln
       - run: dotnet build IGDash.Core.sln --configuration Release --no-restore
+      - run: dotnet test IGDash.Core.sln --configuration Release --no-build --logger 'trx;LogFileName=integration.trx'
