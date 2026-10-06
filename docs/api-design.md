@@ -3,7 +3,7 @@
 This is the proposed contract. Only GET /api/health is implemented in this preparation batch. Runtime Swagger describes implemented endpoints only.
 
 ## Authentication
-Use ASP.NET Core Identity with EF Core and SQLite for local development and the initial MVP. Identity manages password hashing, account validation, and lockout. Keep SQLite data outside git. Review the production database choice before deployment.
+Use ASP.NET Core Identity with EF Core and PostgreSQL through the Npgsql provider. Use PostgreSQL in development, integration tests, and production. Identity manages password hashing, account validation, and lockout. Local development uses the official PostgreSQL 18 image in Docker Compose with a persistent named volume. Keep credentials outside git. EF Core migrations will version the account and log schema; review and apply migrations explicitly rather than automatically migrating during production startup.
 Use HttpOnly cookie sessions for the browser, SameSite=Lax and Secure in production. Serve the UI and /api from the same origin in production; Vite proxies /api locally. Do not store session tokens in localStorage.
 Implement explicit registration/login/logout wrappers around Identity rather than exposing the entire Identity API surface. Login failures must be generic and rate limited; do not reveal account existence. Configure email confirmation and password reset delivery before public release.
 Issue an antiforgery token from GET /api/auth/csrf and require X-CSRF-TOKEN on all unsafe browser requests, including registration/login/logout. Cookies alone are insufficient CSRF protection. Return API 401/403 responses rather than redirecting to HTML login pages.
@@ -28,6 +28,6 @@ Domain: LogEntry and invariants. Application: log use cases, DTOs, repository/cu
 Existing Class1 files are placeholders. Replace them as each layer gains actual responsibilities; avoid empty service registration methods.
 
 ## Verification to add with implementation
-Use a real temporary SQLite database in API integration tests. Verify 401 without a session, valid/invalid CSRF, successful sign-in/sign-out, rejected malformed logs, paging/filtering, and user A never seeing user B's records. Health is not a database readiness check.
+Use an isolated PostgreSQL database in API integration tests (for example, a disposable Testcontainers instance), with the same migrations as the application. Verify 401 without a session, valid/invalid CSRF, successful sign-in/sign-out, rejected malformed logs, paging/filtering, and user A never seeing user B's records. Health is not a database readiness check.
 
 Reference: https://learn.microsoft.com/en-us/aspnet/core/security/authentication/identity-api-authorization?view=aspnetcore-8.0
