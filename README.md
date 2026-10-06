@@ -10,6 +10,8 @@ Install the .NET 8 SDK, then from this repository:
 dotnet restore IGDash.Core.sln
 # Replace the password and port with your local PostgreSQL settings.
 dotnet user-secrets set 'ConnectionStrings:DefaultConnection' 'Host=localhost;Port=5432;Database=igdash;Username=igdash;Password=<local-password>' --project src/IGDash.Core.Api
+dotnet tool restore
+dotnet ef database update --project src/IGDash.Core.Infrastructure --startup-project src/IGDash.Core.Api -- --environment Development
 dotnet run --project src/IGDash.Core.Api --launch-profile http
 ```
 API: http://localhost:5193/api/health. Swagger: http://localhost:5193/swagger.
