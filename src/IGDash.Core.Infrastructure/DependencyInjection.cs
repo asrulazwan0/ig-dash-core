@@ -1,3 +1,5 @@
+using IGDash.Core.Application.Accounts;
+using IGDash.Core.Application.Logs;
 using IGDash.Core.Infrastructure.Identity;
 using IGDash.Core.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -37,8 +39,16 @@ public static class DependencyInjection
         }
 
         services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(connectionString));
-        services.AddIdentityCore<ApplicationUser>(options => options.User.RequireUniqueEmail = true)
+        services.AddIdentityCore<ApplicationUser>(options =>
+        {
+            options.User.RequireUniqueEmail = true;
+            options.Password.RequiredLength = 12;
+            options.Lockout.MaxFailedAccessAttempts = 5;
+            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+        })
             .AddEntityFrameworkStores<ApplicationDbContext>();
+        services.AddScoped<IAccountService, AccountService>();
+        services.AddScoped<ILogRepository, LogRepository>();
         return services;
     }
 }
