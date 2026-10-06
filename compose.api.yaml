@@ -28,8 +28,8 @@ services:
       test: ["CMD", "curl", "--fail", "--silent", "http://localhost:5193/api/health"]
       interval: 5s
       timeout: 5s
-      retries: 20
-      start_period: 30s
+      retries: 30
+      start_period: 180s
   migrate:
     profiles: [tools]
     build: *api-build
