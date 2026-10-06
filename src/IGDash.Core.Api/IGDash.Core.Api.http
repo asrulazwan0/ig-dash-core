@@ -1,6 +1,3 @@
-@IGDash.Core.Api_HostAddress = http://localhost:5193
-
-GET {{IGDash.Core.Api_HostAddress}}/weatherforecast/
+@baseUrl = http://localhost:5193
+GET {{baseUrl}}/api/health
 Accept: application/json
-
-###

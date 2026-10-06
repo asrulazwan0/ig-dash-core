@@ -267,3 +267,11 @@ __pycache__/
 
 # Cake - Uncomment if you are using it
 # tools/
+# Local configuration and database storage
+.env
+.env.*
+!.env.example
+*.db
+*.db-shm
+*.db-wal
+appsettings.Local.json
