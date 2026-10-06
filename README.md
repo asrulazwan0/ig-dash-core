@@ -42,3 +42,11 @@ There are no tests yet. Add API integration tests alongside authentication and p
 - [Architecture, authentication, and proposed API](docs/api-design.md)
 
 Keep secrets in dotnet user-secrets or environment variables. PostgreSQL integration and EF Core migrations will arrive with authentication. GitHub Projects will track implementation once this foundation is reviewed.
+
+## Full Docker development
+This repo includes a Dockerfile.dev for source-mounted development. With both repos checked out as siblings under `ig/`, the local parent compose.yaml runs the API, frontend, and PostgreSQL together:
+```sh
+cd ..
+docker compose up --build -d --wait
+```
+Configure ig-dash-core/.env first. See ../README.md for hot reload, logs, and switching back to native apps. Parent orchestration files are local and are not tracked in either repo yet.
