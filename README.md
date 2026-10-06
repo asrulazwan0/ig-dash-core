@@ -37,11 +37,7 @@ dotnet build IGDash.Core.sln --configuration Release
 ```
 There are no tests yet. Add API integration tests alongside authentication and persistence.
 
-## Documentation
-- [MVP scope](docs/mvp.md)
-- [Architecture, authentication, and proposed API](docs/api-design.md)
-
-Keep secrets in dotnet user-secrets or environment variables. PostgreSQL integration and EF Core migrations will arrive with authentication. GitHub Projects will track implementation once this foundation is reviewed.
+Keep secrets in dotnet user-secrets or environment variables.
 
 ## Full Docker development
 This repo includes a Dockerfile.dev for source-mounted development. With both repos checked out as siblings under `ig/`, the local parent compose.yaml runs the API, frontend, and PostgreSQL together:
