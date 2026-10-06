@@ -1,0 +1,9 @@
+.git
+**/bin
+**/obj
+.env
+.env.*
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/appsettings.Local.json

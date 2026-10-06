@@ -1,0 +1,7 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+WORKDIR /workspace
+COPY . .
+# Keep container build output separate from native bin/obj directories.
+RUN dotnet restore IGDash.Core.sln --property:ArtifactsPath=/tmp/igdash-artifacts
+CMD ["dotnet", "watch", "--non-interactive", "--project", "src/IGDash.Core.Api", "run", "--no-launch-profile", "--artifacts-path", "/tmp/igdash-artifacts"]

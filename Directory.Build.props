@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup Condition="'$(IGDASH_CONTAINER_ARTIFACTS)' != ''">
+    <ArtifactsPath>$(IGDASH_CONTAINER_ARTIFACTS)</ArtifactsPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);**/bin/**;**/obj/**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>
