@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: igdash
+      POSTGRES_USER: igdash
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U igdash -d igdash"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+volumes:
+  postgres_data:
