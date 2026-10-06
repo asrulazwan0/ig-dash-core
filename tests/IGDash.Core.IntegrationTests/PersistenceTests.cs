@@ -25,7 +25,7 @@ public sealed class PersistenceTests(PostgresFixture postgres) : IClassFixture<P
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             Assert.Empty(await AccountTablesAsync(db));
-            Assert.Single(await db.Database.GetPendingMigrationsAsync());
+            Assert.Equal(2, (await db.Database.GetPendingMigrationsAsync()).Count());
             await db.Database.MigrateAsync();
             Assert.Equal(["AspNetUserClaims", "AspNetUserLogins", "AspNetUserTokens", "AspNetUsers"], await AccountTablesAsync(db));
             var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
@@ -38,7 +38,7 @@ public sealed class PersistenceTests(PostgresFixture postgres) : IClassFixture<P
         var secondDb = secondScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         await secondDb.Database.MigrateAsync();
         Assert.Empty(await secondDb.Database.GetPendingMigrationsAsync());
-        Assert.Single(await secondDb.Database.GetAppliedMigrationsAsync());
+        Assert.Equal(2, (await secondDb.Database.GetAppliedMigrationsAsync()).Count());
         var secondUsers = secondScope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var stored = await secondUsers.FindByEmailAsync("migration@example.test");
         Assert.NotNull(stored);
@@ -60,7 +60,7 @@ public sealed class PersistenceTests(PostgresFixture postgres) : IClassFixture<P
         Assert.Empty(await db.Database.GetAppliedMigrationsAsync());
         await db.Database.MigrateAsync();
         Assert.Equal(4, (await AccountTablesAsync(db)).Length);
-        Assert.Single(await db.Database.GetAppliedMigrationsAsync());
+        Assert.Equal(2, (await db.Database.GetAppliedMigrationsAsync()).Count());
         Assert.False(db.Database.HasPendingModelChanges());
     }
 
@@ -81,7 +81,7 @@ public sealed class PersistenceTests(PostgresFixture postgres) : IClassFixture<P
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         Assert.True(await db.Database.CanConnectAsync());
         Assert.Empty(await AccountTablesAsync(db));
-        Assert.Single(await db.Database.GetPendingMigrationsAsync());
+        Assert.Equal(2, (await db.Database.GetPendingMigrationsAsync()).Count());
     }
 
     private static ServiceProvider BuildServices(string connectionString)
