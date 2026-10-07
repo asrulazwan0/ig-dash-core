@@ -16,6 +16,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
         var logs = builder.Entity<LogEntry>();
         logs.Property(log => log.Message).HasMaxLength(2000);
         logs.Property(log => log.Level).HasMaxLength(10);
+        logs.Property(log => log.Tags).HasColumnType("text[]").HasDefaultValueSql("ARRAY[]::text[]");
+        logs.HasIndex(log => log.Tags).HasMethod("gin");
         logs.HasIndex(log => new { log.OwnerId, log.OccurredAt, log.Id });
         logs.HasOne<ApplicationUser>().WithMany().HasForeignKey(log => log.OwnerId).OnDelete(DeleteBehavior.Cascade);
     }
