@@ -149,7 +149,7 @@ public sealed class LogFeaturesTests(PostgresFixture postgres) : IClassFixture<P
         using var host = await ApiTestHost.CreateAsync(postgres);
         await using var scope = host.Factory.Services.CreateAsyncScope();
         var seeder = scope.ServiceProvider.GetRequiredService<DevelopmentSeeder>();
-        Assert.Equal(new SeedResult(2, 168), await seeder.SeedAsync("Demo-Password-123!"));
+        Assert.Equal(new SeedResult(3, 180), await seeder.SeedAsync("Demo-Password-123!"));
         Assert.Equal(new SeedResult(0, 0), await seeder.SeedAsync("Another-Password-123!"));
         using var client = host.Client();
         (await ApiTestHost.PostAsync(client, "/api/auth/login", new { email = "demo.one@example.test", password = "Demo-Password-123!" })).EnsureSuccessStatusCode();

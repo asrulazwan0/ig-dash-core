@@ -38,6 +38,7 @@ public sealed class AccountApiTests(PostgresFixture postgres) : IClassFixture<Po
         using var register = await ApiTestHost.PostAsync(client, "/api/auth/register", new { email = "session@example.test", password = "Test-password-123!" });
         Assert.Equal(HttpStatusCode.Created, register.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/auth/me")).StatusCode);
+        await ApiTestHost.ConfirmAsync(client, "session@example.test");
         using var login = await ApiTestHost.PostAsync(client, "/api/auth/login", new { email = "session@example.test", password = "Test-password-123!" });
         Assert.Equal(HttpStatusCode.NoContent, login.StatusCode);
         var cookie = login.Headers.GetValues("Set-Cookie").Single(value => value.StartsWith("igdash.session="));

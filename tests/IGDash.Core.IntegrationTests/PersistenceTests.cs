@@ -25,7 +25,7 @@ public sealed class PersistenceTests(PostgresFixture postgres) : IClassFixture<P
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             Assert.Empty(await AccountTablesAsync(db));
-            Assert.Equal(3, (await db.Database.GetPendingMigrationsAsync()).Count());
+            Assert.Equal(4, (await db.Database.GetPendingMigrationsAsync()).Count());
             await db.Database.MigrateAsync();
             Assert.Equal(["AspNetUserClaims", "AspNetUserLogins", "AspNetUserTokens", "AspNetUsers"], await AccountTablesAsync(db));
             var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
@@ -38,7 +38,7 @@ public sealed class PersistenceTests(PostgresFixture postgres) : IClassFixture<P
         var secondDb = secondScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         await secondDb.Database.MigrateAsync();
         Assert.Empty(await secondDb.Database.GetPendingMigrationsAsync());
-        Assert.Equal(3, (await secondDb.Database.GetAppliedMigrationsAsync()).Count());
+        Assert.Equal(4, (await secondDb.Database.GetAppliedMigrationsAsync()).Count());
         var secondUsers = secondScope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var stored = await secondUsers.FindByEmailAsync("migration@example.test");
         Assert.NotNull(stored);
@@ -60,7 +60,7 @@ public sealed class PersistenceTests(PostgresFixture postgres) : IClassFixture<P
         Assert.Empty(await db.Database.GetAppliedMigrationsAsync());
         await db.Database.MigrateAsync();
         Assert.Equal(4, (await AccountTablesAsync(db)).Length);
-        Assert.Equal(3, (await db.Database.GetAppliedMigrationsAsync()).Count());
+        Assert.Equal(4, (await db.Database.GetAppliedMigrationsAsync()).Count());
         Assert.False(db.Database.HasPendingModelChanges());
     }
 
@@ -81,7 +81,7 @@ public sealed class PersistenceTests(PostgresFixture postgres) : IClassFixture<P
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         Assert.True(await db.Database.CanConnectAsync());
         Assert.Empty(await AccountTablesAsync(db));
-        Assert.Equal(3, (await db.Database.GetPendingMigrationsAsync()).Count());
+        Assert.Equal(4, (await db.Database.GetPendingMigrationsAsync()).Count());
     }
 
     [Fact]
@@ -90,10 +90,11 @@ public sealed class PersistenceTests(PostgresFixture postgres) : IClassFixture<P
         using var services = BuildServices(await postgres.CreateDatabaseAsync());
         await using var scope = services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        await db.GetService<IMigrator>().MigrateAsync("20261006160031_PrivateLogs");
+        await db.Database.MigrateAsync();
         var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var user = new ApplicationUser { UserName = "upgrade@example.test", Email = "upgrade@example.test" };
         Assert.True((await users.CreateAsync(user, "Test-password-123!")).Succeeded);
+        await db.GetService<IMigrator>().MigrateAsync("20261006160031_PrivateLogs");
         var id = Guid.NewGuid(); var now = DateTimeOffset.UtcNow; var message = "legacy"; var level = "info";
         await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO \"LogEntries\" (\"Id\", \"OwnerId\", \"Message\", \"Level\", \"OccurredAt\", \"CreatedAt\") VALUES ({id}, {user.Id}, {message}, {level}, {now}, {now})");
         await db.Database.MigrateAsync();
