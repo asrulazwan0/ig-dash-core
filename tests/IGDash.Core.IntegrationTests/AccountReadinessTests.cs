@@ -197,6 +197,11 @@ public sealed class AccountReadinessTests(PostgresFixture postgres) : IClassFixt
         (await ApiTestHost.PostAsync(client, "/api/auth/verification/request", new { email = "demo.unverified@example.test" })).EnsureSuccessStatusCode();
         await ApiTestHost.ConfirmAsync(client, "demo.unverified@example.test"); (await Login(client, "demo.unverified@example.test")).EnsureSuccessStatusCode();
         Assert.Equal(12, (await client.GetFromJsonAsync<JsonElement>("/api/logs")).GetProperty("total").GetInt32());
-        await using var second = host.Factory.Services.CreateAsyncScope(); Assert.Equal(new SeedResult(0, 0), await second.ServiceProvider.GetRequiredService<DevelopmentSeeder>().SeedAsync(Password));
+        (await ApiTestHost.PostAsync(client, "/api/auth/email/change", new { email = "changed-demo@example.test", currentPassword = Password })).EnsureSuccessStatusCode();
+        var link = host.Emails.Link("changed-demo@example.test", "Confirm your IGDash email change");
+        (await ApiTestHost.PostAsync(client, "/api/auth/email/confirm", new { userId = link["user"], email = "changed-demo@example.test", token = link["token"] })).EnsureSuccessStatusCode();
+        await using (var second = host.Factory.Services.CreateAsyncScope()) Assert.Equal(new SeedResult(0, 0), await second.ServiceProvider.GetRequiredService<DevelopmentSeeder>().SeedAsync(Password));
+        (await Login(client, "changed-demo@example.test")).EnsureSuccessStatusCode();
+        Assert.Equal(12, (await client.GetFromJsonAsync<JsonElement>("/api/logs")).GetProperty("total").GetInt32());
     }
 }
