@@ -11,9 +11,21 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Identity;
+using IGDash.Core.Infrastructure.Identity;
+using IGDash.Core.Infrastructure.Email;
 
 var builder = WebApplication.CreateBuilder(args.Where(argument => argument != "--seed-demo").ToArray());
 builder.Services.AddInfrastructure(builder.Configuration);
+new IdentityBuilder(typeof(ApplicationUser), builder.Services).AddDefaultTokenProviders();
+builder.Services.Configure<DataProtectionTokenProviderOptions>(options => options.TokenLifespan = TimeSpan.FromHours(1));
+builder.Services.AddOptions<EmailOptions>().Bind(builder.Configuration.GetSection("Email"))
+    .Validate(options => !string.IsNullOrWhiteSpace(options.Host) && options.Port is > 0 and <= 65535 && new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(options.From), "Configure valid Email host, port and sender.")
+    .Validate(options => Uri.TryCreate(options.PublicOrigin, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https" && string.IsNullOrEmpty(uri.UserInfo) && uri.AbsolutePath == "/" && string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment), "Email:PublicOrigin must be an HTTP(S) origin without a path, query, fragment or credentials.")
+    .Validate(options => options.Security is "None" or "StartTls" or "SslOnConnect", "Configure Email:Security None, StartTls or SslOnConnect.")
+    .Validate(options => builder.Environment.IsDevelopment() || (options.Security != "None" && options.PublicOrigin.StartsWith("https://", StringComparison.OrdinalIgnoreCase)), "Production email requires TLS and an HTTPS public origin.")
+    .Validate(options => string.IsNullOrWhiteSpace(options.Username) || !string.IsNullOrEmpty(options.Password), "Email:Password is required when a username is configured.")
+    .ValidateOnStart();
 builder.Services.AddScoped<LogService>();
 builder.Services.AddScoped<IGDash.Core.Infrastructure.Persistence.DevelopmentSeeder>();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
@@ -47,8 +59,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         var valid = Guid.TryParse(context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier), out var id)
             && context.Principal?.FindFirstValue("igdash:stamp") is { } stamp
+            && Guid.TryParse(context.Principal?.FindFirstValue("igdash:session"), out var sessionId)
             && await context.HttpContext.RequestServices.GetRequiredService<IAccountService>()
-                .ValidateSessionAsync(id, stamp, context.HttpContext.RequestAborted);
+                .ValidateSessionAsync(id, stamp, sessionId, context.HttpContext.RequestAborted);
         if (!valid) { context.RejectPrincipal(); await context.HttpContext.SignOutAsync(); }
     };
 });
@@ -61,6 +74,9 @@ builder.Services.AddRateLimiter(options =>
     options.AddPolicy("accounts", context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions
         { PermitLimit = builder.Configuration.GetValue("RateLimits:AccountsPerMinute", 20), Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+    options.AddPolicy("settings", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous", _ => new FixedWindowRateLimiterOptions
+        { PermitLimit = 60, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
     options.AddPolicy("logs", context => RateLimitPartition.GetFixedWindowLimiter(
         context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous", _ => new FixedWindowRateLimiterOptions
         { PermitLimit = 100, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
@@ -96,6 +112,7 @@ app.Use(async (context, next) =>
 });
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" })).WithName("GetHealth").WithOpenApi();
 app.MapAccountEndpoints();
+app.MapAccountSettingsEndpoints();
 app.MapLogEndpoints();
 app.Run();
 public partial class Program { }

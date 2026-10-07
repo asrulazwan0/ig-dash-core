@@ -30,10 +30,12 @@ internal static class AccountEndpoints
         group.MapPost("/login", async (Credentials request, HttpContext context, IAccountService accounts, CancellationToken cancellationToken) =>
         {
             if (!Valid(request)) return Results.Problem(statusCode: 400, title: "Provide a valid email and a password of 12–128 characters.");
-            var account = await accounts.AuthenticateAsync(request.Email!, request.Password!, cancellationToken);
+            var login = await accounts.AuthenticateAsync(request.Email!, request.Password!, cancellationToken, context.Request.Headers.UserAgent.ToString());
+            if (login.NeedsVerification) return Results.Problem(statusCode: 403, title: "Verify your email before signing in. You can request a new verification email.");
+            var account = login.Session;
             if (account is null) return Results.Problem(statusCode: 401, title: "Invalid email or password.");
             var claims = new[] { new Claim(ClaimTypes.NameIdentifier, account.Id.ToString()),
-                new Claim(ClaimTypes.Email, account.Email), new Claim("igdash:stamp", account.SecurityStamp) };
+                new Claim(ClaimTypes.Email, account.Email), new Claim("igdash:stamp", account.SecurityStamp), new Claim("igdash:session", account.SessionId.ToString()) };
             await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
                 new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)));
             return Results.NoContent();
@@ -51,6 +53,7 @@ internal static class AccountEndpoints
         }).RequireAuthorization();
     }
     private static bool Valid(Credentials request) => request.Email is { Length: > 0 and <= 254 }
+        && !request.Email.Contains('\r') && !request.Email.Contains('\n')
         && new EmailAddressAttribute().IsValid(request.Email.Trim())
         && request.Password is { Length: >= 12 and <= 128 };
 }

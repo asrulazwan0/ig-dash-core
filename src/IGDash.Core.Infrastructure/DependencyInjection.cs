@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using IGDash.Core.Infrastructure.Email;
 
 namespace IGDash.Core.Infrastructure;
 
@@ -47,6 +48,8 @@ public static class DependencyInjection
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
         })
             .AddEntityFrameworkStores<ApplicationDbContext>();
+        services.Configure<EmailOptions>(configuration.GetSection("Email"));
+        services.AddScoped<IAccountEmailSender, SmtpAccountEmailSender>();
         services.AddScoped<IAccountService, AccountService>();
         services.AddScoped<ILogRepository, LogRepository>();
         return services;
