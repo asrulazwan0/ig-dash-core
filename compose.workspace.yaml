@@ -12,6 +12,7 @@ services:
       dockerfile: Dockerfile.e2e
     environment:
       BASE_URL: http://ui:5173
+      MAILPIT_URL: http://mailpit:8025
     depends_on:
       ui:
         condition: service_healthy

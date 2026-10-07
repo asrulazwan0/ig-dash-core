@@ -2,7 +2,7 @@
 .NET 8 API for a dashboard with individual accounts and private logs.
 
 ## Current state
-The API supports registration, cookie sessions, CSRF protection, and private log creation, editing, deletion, tags, search/date/level filters, pagination, activity summaries, and CSV export. PostgreSQL migrations are applied explicitly. GET /api/health reports process health.
+The API supports verified registration, password recovery, password/email changes, owned session management, cookie sessions, CSRF protection, and private log creation, editing, deletion, tags, search/date/level filters, pagination, activity summaries, and CSV export. PostgreSQL migrations are applied explicitly. GET /api/health reports process health.
 
 ## Local development
 Install the .NET 8 SDK, then from this repository:
@@ -74,4 +74,19 @@ dotnet run --project src/IGDash.Core.Api --launch-profile http -- --seed-demo
 ```
 Alternatively set `Seed__Password` in the process environment. The password requires at least 12 characters, uppercase, lowercase, a number, and a symbol. It is never printed by the seeder.
 
-Sign in as `demo.one@example.test` or `demo.two@example.test` using your configured password. Each has 84 private entries across four weeks, varied levels and tags, and long/Unicode/multiline examples. Reruns add missing demo records without replacing existing entries or changing account passwords. Deleted demo records return when explicitly reseeding; existing timestamps stay unchanged. No reset or deletion of other data is performed. A conflicting pre-existing demo email stops the entire transaction.
+Sign in as `demo.one@example.test` or `demo.two@example.test` using your configured password. The first two accounts are verified and each has 84 private entries across four weeks, varied levels and tags, and long/Unicode/multiline examples. Reruns add missing demo records without replacing existing entries or changing account passwords. Deleted demo records return when explicitly reseeding; existing timestamps stay unchanged. The additional `demo.unverified@example.test` account starts unverified with 12 private sample logs, visible after email confirmation. Existing demo profile/email/password changes are preserved on reruns. The two original demo accounts are explicitly upgraded to verified during seeding. No reset or deletion of other data is performed. A conflicting pre-existing demo email stops the entire transaction.
+
+## Local email and account settings
+The shared Docker stack includes Mailpit. Open http://localhost:8025 to read captured account emails; SMTP is available on localhost:1025 for native development. Both ports bind to loopback. Mailpit does not relay these emails externally and its inbox is disposable when the container is recreated.
+```sh
+docker compose -f compose.workspace.yaml up -d --wait mailpit
+```
+New registrations require verification before sign-in. Use the email link and press Confirm email. Forgot password and resend verification return the same acknowledgement regardless of account eligibility; each message purpose has a one-minute cooldown. Links expire after one hour, are purpose-bound, and successful confirmation/reset cannot be replayed. Link tokens use the browser URL fragment and are cleared before API requests; avoid sharing inbox contents or links.
+
+Signed-in users can open Account settings to change passwords, request a new email address, and view/revoke their own sessions. Password/email changes require the current password. Email changes preserve the current email until the new address is confirmed; the old address receives a notification. Successful password recovery/change and confirmed email changes revoke all sessions. Individual revocation rejects replay of that session cookie. Sign out retains its existing all-session revocation behavior. The account ID and private logs are preserved when email changes.
+
+The new session records invalidate older cookies once this migration/code update is installed. Existing unverified accounts can request a verification email; migration does not silently verify them.
+
+Native email defaults point to Mailpit at localhost:1025 with public origin http://localhost:5173. Docker sets the SMTP host to mailpit. Set `IGDASH_PUBLIC_ORIGIN` in the ignored .env to change Docker link origin; native uses `Email:PublicOrigin` configuration.
+
+For deployment, configure Email Host, Port, From, PublicOrigin, Security, and optional Username/Password through environment variables or secret storage. Production startup requires an HTTPS origin and `Email:Security=StartTls` or `SslOnConnect`; password is required when a username is set. Do not expose or deploy this local inbox as a production email service. Hosting, trusted proxies, backups and operational delivery monitoring remain deployment work.

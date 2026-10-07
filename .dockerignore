@@ -7,3 +7,5 @@
 **/*.db-shm
 **/*.db-wal
 **/appsettings.Local.json
+
+**/TestResults
