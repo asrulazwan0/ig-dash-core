@@ -2,7 +2,7 @@
 .NET 8 API for a dashboard with individual accounts and private logs.
 
 ## Current state
-The API supports registration, cookie sessions, CSRF protection, and private log creation/listing with filtering and pagination. PostgreSQL migrations are applied explicitly. GET /api/health reports process health.
+The API supports registration, cookie sessions, CSRF protection, and private log creation, editing, deletion, tags, search/date/level filters, pagination, activity summaries, and CSV export. PostgreSQL migrations are applied explicitly. GET /api/health reports process health.
 
 ## Local development
 Install the .NET 8 SDK, then from this repository:
@@ -59,3 +59,19 @@ docker compose -f compose.workspace.yaml stop api ui
 The last command frees ports for native apps while keeping PostgreSQL running. Browser checks create test accounts and logs; use a disposable stack for test runs when preserving development data matters. Do not remove persistent volumes to switch workflows.
 
 Sessions expire after eight hours. Sign-out revokes all sessions for that account. Production requires HTTPS, a same-origin API proxy, restricted database credentials, and deployment-specific configuration; these files provide development containers.
+
+## Demo data
+Apply migrations first. Seeding is explicit and available only in Development; normal startup never seeds or migrates the database.
+
+For Docker, add `IGDASH_DEMO_PASSWORD=<your-strong-demo-password>` to your ignored `.env`, then run:
+```sh
+docker compose -f compose.workspace.yaml --profile tools run --build --rm seed
+```
+For native development, use the same configured database as the API:
+```sh
+dotnet user-secrets set 'Seed:Password' '<your-strong-demo-password>' --project src/IGDash.Core.Api
+dotnet run --project src/IGDash.Core.Api --launch-profile http -- --seed-demo
+```
+Alternatively set `Seed__Password` in the process environment. The password requires at least 12 characters, uppercase, lowercase, a number, and a symbol. It is never printed by the seeder.
+
+Sign in as `demo.one@example.test` or `demo.two@example.test` using your configured password. Each has 84 private entries across four weeks, varied levels and tags, and long/Unicode/multiline examples. Reruns add missing demo records without replacing existing entries or changing account passwords. Deleted demo records return when explicitly reseeding; existing timestamps stay unchanged. No reset or deletion of other data is performed. A conflicting pre-existing demo email stops the entire transaction.

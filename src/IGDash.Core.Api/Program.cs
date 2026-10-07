@@ -12,9 +12,10 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.RateLimiting;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args.Where(argument => argument != "--seed-demo").ToArray());
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<LogService>();
+builder.Services.AddScoped<IGDash.Core.Infrastructure.Persistence.DevelopmentSeeder>();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddEndpointsApiExplorer();
@@ -65,6 +66,14 @@ builder.Services.AddRateLimiter(options =>
         { PermitLimit = 100, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
 });
 var app = builder.Build();
+if (args.Contains("--seed-demo"))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var result = await scope.ServiceProvider.GetRequiredService<IGDash.Core.Infrastructure.Persistence.DevelopmentSeeder>()
+        .SeedAsync(builder.Configuration["Seed:Password"]);
+    Console.WriteLine($"Demo seed complete: {result.UsersCreated} users and {result.LogsCreated} logs created.");
+    return;
+}
 app.UseExceptionHandler(handler => handler.Run(async context =>
 {
     var error = context.Features.Get<IExceptionHandlerFeature>()?.Error;

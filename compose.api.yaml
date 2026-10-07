@@ -30,6 +30,22 @@ services:
       timeout: 5s
       retries: 30
       start_period: 180s
+  seed:
+    profiles: [tools]
+    build: *api-build
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      Seed__Password: ${IGDASH_DEMO_PASSWORD:-}
+      Postgres__Host: postgres
+      Postgres__Port: "5432"
+      Postgres__Database: igdash
+      Postgres__Username: igdash
+      Postgres__Password: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["dotnet", "run", "--no-launch-profile", "--project", "src/IGDash.Core.Api", "--", "--seed-demo"]
   migrate:
     profiles: [tools]
     build: *api-build
